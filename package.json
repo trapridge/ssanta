@@ -1,0 +1,28 @@
+{
+  "name": "ssanta",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "babel-node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "babel-preset-es2015": "^6.18.0",
+    "eslint": "^3.10.2"
+  },
+  "dependencies": {
+    "mailgun": "^0.5.0",
+    "mailgun-js": "^0.7.13",
+    "ramda": "^0.22.1",
+    "sendgrid": "^4.7.1"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+mailgun.env
+node_modules
+.idea
+*.iml
