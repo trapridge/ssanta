@@ -15,10 +15,8 @@
     "eslint": "^3.10.2"
   },
   "dependencies": {
-    "mailgun": "^0.5.0",
     "mailgun-js": "^0.7.13",
-    "ramda": "^0.22.1",
-    "sendgrid": "^4.7.1"
+    "ramda": "^0.22.1"
   },
   "babel": {
     "presets": [
