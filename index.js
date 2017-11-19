@@ -1,13 +1,6 @@
 import R from 'ramda'
 import Mailgun from 'mailgun-js'
-
-const apiKey = process.env.MAILGUN_API_KEY
-const domain = process.env.MAILGUN_SERVER_NAME
-
-if (!apiKey || !domain) {
-  console.log('Aborting. Set up Mailgun env vars: MAILGUN_API_KEY, MAILGUN_SERVER_NAME')
-  process.exit(1)
-}
+import { drawUntilSuccess } from './drawMachine'
 
 const getSuggestion = () => {
   const suggestions = [
@@ -21,50 +14,57 @@ const getSuggestion = () => {
     'a funny hat',
     'a raindeer sweater',
     'an ornament',
-    'a nonfiction book',
+    'a non-fiction book',
   ]
   return suggestions[Math.floor(Math.random() * suggestions.length)]
 }
-const mg = new Mailgun({ apiKey, domain })
-const presentEmailPromises =
-  // ramdomize array of participants
-  R.sort(() => Math.random() - 0.5, [
-    { name: 'Person1', email: 'person1@email.invalid' },
-    { name: 'Person2', email: 'person2@email.invalid' },
-    { name: 'Person3', email: 'person3@email.invalid' },
-  ])
-  // create list of buyer/receiver mappings in cyclic linked list manner
-  .reduce((acc, v, i, arr) => {
-    return [...acc, {
-      buyerName: v.name,
-      buyerEmail: v.email,
-      receiverName: i === arr.length - 1 ? arr[0].name : arr[i + 1].name
-    }]
-  }, [])
-  // send emails
-  .map((mapping) => {
-    return new Promise((resolve, reject) => {
-      mg.messages().send({
-        from: 'Secret Santa <santa@claus.org>',
-        to: mapping.buyerEmail,
-        subject: 'Xmas presents',
-        text:
-`Hohoho ${mapping.buyerName}!
-  
-This Xmas you will buy a present for ${mapping.receiverName}. 
 
-Maybe you should consider purchasing ${getSuggestion()}? I've heard it's a popular gift this year.
+const getHtmlEmail = (giverName, receiverName, suggestion) => `
+  <div>
+    <img src="https://i.giphy.com/media/K90ckojkohXfW/giphy.gif">
+    <br>
+    <strong>Hohoho ${giverName}!</strong>
+    <p>This Xmas you will buy a present for ${receiverName}.</p>
+    <p>Maybe you should consider purchasing ${suggestion}? I've heard it's a popular gift this year.</p>
+    <p>Happy holidays!<br>Santa</p>
+  </div>
+`
 
-Happy holidays!
-Santa`
-      }, (err, body) => {
-        if (err) reject(err)
-        else resolve(body)
-      })
+const send = (mg, giver) => {
+  return new Promise((resolve, reject) => {
+    mg.messages().send({
+      from: 'Secret Santa <santa@claus.org>',
+      to: giver.email,
+      subject: 'Xmas presents',
+      html: getHtmlEmail(giver.name, giver.receiver.name, getSuggestion())
+    }, (err, body) => {
+      if (err) reject(err)
+      else resolve(body)
     })
   })
+}
 
-Promise
-  .all(presentEmailPromises)
-  .then((body) => console.log('emails sent', body))
-  .catch(err => console.log(err))
+const getPool = () => [
+  { name: 'Person1', email: 'person1@mail.invalid', picked: false, blacklist: ['person2@mail.invalid'] },
+  { name: 'Person2', email: 'person2@mail.invalid', picked: false, blacklist: ['person1@mail.invalid'] },
+  { name: 'Person3', email: 'person3@mail.invalid', picked: false, blacklist: [] },
+  { name: 'Person4', email: 'person4@mail.invalid', picked: false, blacklist: [] },
+]
+
+const apiKey = process.env.MAILGUN_API_KEY
+const domain = process.env.MAILGUN_SERVER_NAME
+
+if (!apiKey || !domain) {
+  console.log('Aborting. Set up Mailgun env vars: MAILGUN_API_KEY, MAILGUN_SERVER_NAME')
+  process.exit(1)
+}
+
+const mg = new Mailgun({ apiKey, domain })
+
+let sent
+try {
+  sent = Promise.all(drawUntilSuccess(getPool).map(giver => send(mg, giver)))
+} catch (e) {
+  console.log('Problem in sending emails')
+  throw e
+}
